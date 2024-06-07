@@ -15,7 +15,7 @@ import os
 import pandas as pd
 
 duration = [10] # time in days for mid value
-fileName = "Caphy_Data" 
+fileName = "Mensa_Data" 
 #fileName = "data.txt" 
 
 def datatext(time, y): # console output
