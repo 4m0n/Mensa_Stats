@@ -6,10 +6,15 @@
 	objectVersion = 56;
 	objects = {
 
+/* Begin PBXFileReference section */
+		3F1F665F2B62B81E000F1E2D /* mensa.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = mensa.py; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
 /* Begin PBXGroup section */
 		3F1F66542B62B608000F1E2D = {
 			isa = PBXGroup;
 			children = (
+				3F1F665F2B62B81E000F1E2D /* mensa.py */,
 			);
 			sourceTree = "<group>";
 		};
