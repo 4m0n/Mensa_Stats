@@ -14,11 +14,11 @@ import secret
 import os
 import pandas as pd
 
-duration = [10] # time in days for mid value
+duration = [10] # zeit in days for mid value
 fileName = "Mensa_Data" 
 #fileName = "data.txt" 
 
-def datatext(time, y): # console output
+def datatext(zeit, y): # console output
     gesamtString = ""
     sumValue = 0.0
     for i in range(len(y)):
@@ -59,7 +59,7 @@ def createData_auto():
     # === Werte einlesen === 
     rows = driver.find_elements(By.TAG_NAME, "tr")
     data = []
-    time = []
+    zeit = []
     y = []
     go = False
     for row in rows:
@@ -72,7 +72,7 @@ def createData_auto():
                 go = True
                 break
             if i == 2:
-                time.append(cell.text)
+                zeit.append(cell.text)
             elif i == 6:
                 text = cell.text.replace(',', '.')
                 if "," in cell.text:
@@ -94,11 +94,22 @@ def createData_auto():
     file_exists = os.path.isfile("Caphy_Data.csv")
     header = ["Kasse", "Name Kasse", "Datum", "Vorgang", "Loader", "Aufwertung", "Zahlung", "Saldo"]
     df.columns = header
+    def kein_minus(value):
+        try:
+            if value<0:
+                return 0.0
+            else:
+                return value
+        except ValueError:
+            return 0.0
     def convert_comma_and_float(value):
         try:
-            if "," not in value:
+            if ""==value:
+                return 0.0
+            elif "," not in value:
                 return value
-            return float(value.replace(',', '.'))
+            value = float(value.replace(',', '.'))
+            return value
         except ValueError:
             return 0.0
     df[header[2]] = pd.to_datetime(df[header[2]], format='%d.%m.%y', errors='coerce')
@@ -108,34 +119,31 @@ def createData_auto():
 
 
 
-    if os.path.exists(fileName):
+    if os.path.exists(fileName + ".csv"):
         df_existing = pd.read_csv(fileName + ".csv")
-        df_existing[header[2]] = pd.to_datetime(df_existing[header[2]], format='%d.%m.%y', errors='coerce')
+        df_existing[header[2]] = pd.to_datetime(df_existing[header[2]], format='%Y-%m-%d', errors='coerce')
         latest_date = df_existing[header[2]].max()
-        
         # Neue Daten filtern, um nur die Daten nach dem neuesten Datum zu behalten
-        if df[df[header[2]]].max() > latest_date: 
+        if df[header[2]].max() > latest_date: 
             df = df[df[header[2]] > latest_date]
         else:
             print("bereits aktuell")
-            df = df_existing
+            df = pd.DataFrame()
     else:
         df_existing = pd.DataFrame()
-
+    df[header[6]] = df[header[6]].apply(kein_minus)
     # Die neuen Daten zur CSV-Datei hinzufügen
     df_combined = pd.concat([df_existing, df])
     df_combined.to_csv(fileName + ".csv", index=False,header=True)
-
-    print("Data Loaded", time)
-    date = [datetime.strptime(time, '%d.%m.%y') for time in time]
-
-    return date, y
+    print("Data Loaded")
+    date = [datetime.strptime(zeit, '%d.%m.%y') for zeit in zeit]
+    return list(df_combined[header[2]]), list(df_combined[header[6]])
 
 
 def createData_old(): # read data from file
 
     try:
-        with open(fileName, 'r') as datei:
+        with open("data.txt", 'r') as datei:
             text = datei.read()
 
         # Ausgabe des eingelesenen Strings
@@ -182,7 +190,7 @@ def createData_old(): # read data from file
         if len(data[i]) == 5:
             data[i].pop(1)
 
-    time = [datetime.strptime(date, '%d.%m.%y') for date in date]
+    zeit = [datetime.strpzeit(date, '%d.%m.%y') for date in date]
 
     x = []
     y = []
@@ -193,66 +201,69 @@ def createData_old(): # read data from file
         else:
             x.append(i)
             y.append(0)
-    return time,y
+    return zeit,y
 
 
-def medData(time,y,duration): # medium values for different time intervalls
-    zeit = []
+def medData(zeit,y,duration): # medium values for different zeit intervalls
+    zeit3 = []
     wert = []
     for l in range(len(duration)):
-        time2 = []
+        zeit2 = []
         y2 =[]
         y1 = 0.0
         # set k = 0 for mid payment price or set k = duration for mid payment per duration periode
         k = 0 
         k = duration[l] 
-        start = time[0]
-        print(duration[l])
+        start = zeit[0]
 
-        for i in range(len(time)):
+        for i in range(len(zeit)):
             #k +=1
-            if start - timedelta(days=duration[l]) <= time[i]:
+            print(f"len zeit: {len(zeit)}")
+            if start + timedelta(days=duration[l]) <= zeit[i]:
                 y1 += y[i]
             else:
-                time2.append(time[i-1] + timedelta(days=duration[l]/2))
+                zeit2.append(zeit[i-1] + timedelta(days=duration[l]/2))
                 y2.append(y1/k)
                 y1 = y[i]
-                start = time[i]
+                start = zeit[i]
                 #k = 0
         if y1 != 0.0:
-            time2.append(time[-1])
+            zeit2.append(zeit[-1])
             y2.append(y1/k)
-        zeit.append(time2)
+        zeit3.append(zeit2)
         wert.append(y2)
-    return zeit,wert
-def plotData(time,y,time2 = None,y2 = None, fileName = "plot"):
+    print(f"len zeit: {len(zeit2) , len(y2)}")
+
+    return zeit3,wert
+def plotData(zeit,y,zeit2 = None,y2 = None, fileName = "plot"):
     plt.figure(figsize=(10,8))
     plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%d.%m.%y'))
 
     plt.grid()
-    plt.scatter(time,y, label="Messwerte", color='blue' , alpha = 0.5)
+    plt.scatter(zeit,y, label="Messwerte", color='blue' , alpha = 0.5)
 
     plt.axhline(y=0.85, color='brown', linestyle='--', label='Schoko Milch')
     plt.axhline(y=2.1, color='red', linestyle='--', label='Bockwurst-Brot')
     plt.axhline(y=1.8, color='green', linestyle='--', label='Kuchen')
     #plt.axhline(y=1.0, color='orange', linestyle='--', label='Wäsche')
-    if time2 != None:
-        for i in range(len(time2)):
-            plt.plot(time2[i],y2[i])
+    if zeit2 != None:
+        for i in range(len(zeit2)):
+            plt.plot(zeit2[i],y2[i])
+            print("PLOT \n\n")
 
-    print(datatext(time,y))
+    print(datatext(zeit,y))
 
     plt.legend()
     plt.title(fileName)
     plt.savefig(fileName + ".png")
-    #plt.show()
+    plt.show()
 
 
 
-#time,y = createData()
-time, y = createData_auto()
-time2, y2 = medData(time,y,duration)
-print(datatext(time,y))
-plotData(time,y,time2,y2,fileName)
+#zeit,y = createData_old()
+zeit, y = createData_auto()
+zeit2, y2 = medData(zeit,y,duration)
+#print(datatext(zeit,y))
+plotData(zeit,y,zeit2,y2,fileName)
 
 
