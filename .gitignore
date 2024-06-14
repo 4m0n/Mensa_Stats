@@ -2,5 +2,4 @@
 !.gitignore
 !main_mensa.py
 !README.md
-*main_mensa.py
-*mensa_new.py
+!mensa_new.py
