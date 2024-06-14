@@ -91,7 +91,6 @@ def createData_auto():
     # === DATAFRAME anpassen ===
     data.pop(0)
     df = pd.DataFrame(data)
-    file_exists = os.path.isfile("Caphy_Data.csv")
     header = ["Kasse", "Name Kasse", "Datum", "Vorgang", "Loader", "Aufwertung", "Zahlung", "Saldo"]
     df.columns = header
     def kein_minus(value):
@@ -124,19 +123,24 @@ def createData_auto():
         df_existing[header[2]] = pd.to_datetime(df_existing[header[2]], format='%Y-%m-%d', errors='coerce')
         latest_date = df_existing[header[2]].max()
         # Neue Daten filtern, um nur die Daten nach dem neuesten Datum zu behalten
-        if df[header[2]].max() > latest_date: 
+        print(f"Old Data: {df_existing}\n\n")
+        print(f"new data: {df}\n\n")
+        if df[header[2]].max() == latest_date: 
+            df = df[df[header[2]] >= latest_date]
+            df_existing = df_existing[df_existing[header[2]] < latest_date]
+        elif df[header[2]].max() > latest_date: 
             df = df[df[header[2]] > latest_date]
         else:
             print("bereits aktuell")
             df = pd.DataFrame()
     else:
         df_existing = pd.DataFrame()
-    df[header[6]] = df[header[6]].apply(kein_minus)
     # Die neuen Daten zur CSV-Datei hinzufügen
-    df_combined = pd.concat([df_existing, df])
+    df_combined = pd.concat([df, df_existing], ignore_index=True)
     df_combined.to_csv(fileName + ".csv", index=False,header=True)
+    df_combined[header[6]] = df_combined[header[6]].apply(kein_minus)
+
     print("Data Loaded")
-    date = [datetime.strptime(zeit, '%d.%m.%y') for zeit in zeit]
     return list(df_combined[header[2]]), list(df_combined[header[6]])
 
 
@@ -232,7 +236,6 @@ def medData(zeit,y,duration): # medium values for different zeit intervalls
             y2.append(y1/k)
         zeit3.append(zeit2)
         wert.append(y2)
-    print(f"len zeit: {len(zeit2) , len(y2)}")
 
     return zeit3,wert
 def plotData(zeit,y,zeit2 = None,y2 = None, fileName = "plot"):
