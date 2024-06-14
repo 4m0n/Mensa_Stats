@@ -85,11 +85,11 @@ class Transaction:
         }
 
 
-def read_data(driver,wait, button):
-    guthaben = wait.until(EC.visibility_of_element_located((By.ID, "umsatzSaldo"))).text
-    bezahlt = wait.until(EC.visibility_of_element_located((By.ID, "umsatzGegeben"))).text
-    datum = driver.find_element(By.CSS_SELECTOR, "a.text-blue-600.mb-sales-1").text 
-    ort = driver.find_element(By.CSS_SELECTOR, "p.text-sm.mt-1.text-center.cursor-pointer").text
+def read_data(driver,wait, datum,ort,guthaben,bezahlt):
+    guthaben = guthaben
+    bezahlt = bezahlt
+    datum = datum
+    ort = ort
 
     #guthaben = 
     try:
@@ -151,14 +151,23 @@ def createData_auto():
         # ITERRIERE ÜBER ALLE BESTELLUNGEN
         #transactId
         tbody = driver.find_element(By.TAG_NAME, "tbody")
-        links = tbody.find_elements(By.TAG_NAME, "a")
+        button_list = tbody.find_elements(By.TAG_NAME, "a")
+        links = tbody.find_elements(By.TAG_NAME, "tr")
         try:
             next_site = wait.until(EC.visibility_of_element_located((By.LINK_TEXT, "Zurück »")))
-            for button in links:
+            for index, site in enumerate(links):
+                button = button_list[index]
                 button.click()
-                print(f"button text: \n{button.text}")
-                transactions.append(read_data(driver,wait,button))
-                mensa.append(read_data(driver,wait,button))
+
+                lines = site.text.split("\n")
+                datum = lines[0]
+                ort = lines[1]
+                preis_parts = lines[2].split()
+                guthaben = preis_parts[0]
+                bezahlt = preis_parts[1]
+
+                transactions.append(read_data(driver,wait,datum,ort,guthaben,bezahlt))
+                mensa.append(read_data(driver,wait,datum,ort,guthaben,bezahlt))
                 #mensa.print_all_values()
             next_site.click()
         except:
