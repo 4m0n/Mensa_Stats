@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-
+import re
 import secret
 import os
 import pandas as pd
@@ -30,6 +30,23 @@ class Mensa:
         }
     def length(self):
         return len(self.transactions)
+    def last_trans(self):
+        return self.transactions[-1]
+    def get_simple_plot(self):
+        x,y = [],[]
+        for val in self.transactions:
+            if val.bezahlt <= 2:
+                continue
+            x.append(val.datum)
+            y.append(val.bezahlt)
+        print(f"{x}\n\n")
+        print(f"{y}\n\n")
+        return x,y
+    def convert_types(self):
+        for t in self.transactions:
+            t.convert_types()
+
+
     def print_all_values(self):
         for index, transaction in enumerate(self.transactions, start=1):
             print(f"Transaction {index}:")
@@ -64,6 +81,13 @@ class Sub_Trans:
             "produkt": self.produkt,
             "preis": self.preis
         }
+    def convert_types(self):
+        self.datum = datetime.strptime(self.datum, "%H:%M:%S")
+        self.preis = self.preis.replace(",",".")
+        self.preis = -float(re.sub(r'[^\d.-]', '', self.preis)) #minues sieht schöner aus
+        self.menge = self.menge.replace(",",".")
+        self.menge = float(re.sub(r'[^\d.-]', '', self.menge)) 
+
 
 class Transaction:
     def __init__(self, datum="", ort="", guthaben=0.0, bezahlt=0.0, sub_trans=None):
@@ -83,6 +107,15 @@ class Transaction:
             "bezahlt": self.bezahlt,
             "sub_trans": [st.to_dict() for st in self.sub_trans]
         }
+    def convert_types(self):
+        self.datum = datetime.strptime(self.datum, '%d.%m.%Y')
+        self.guthaben = self.guthaben.replace(",",".")
+        self.guthaben = float(re.sub(r'[^\d.-]', '', self.guthaben))
+        self.bezahlt = self.bezahlt.replace(",",".")
+        self.bezahlt = -float(re.sub(r'[^\d.-]', '', self.bezahlt)) #minus sieht schöner aus
+        print("yeees")
+        for st in self.sub_trans:
+            st.convert_types()
 
 
 def read_data(driver,wait, datum,ort,guthaben,bezahlt):
@@ -118,15 +151,57 @@ def read_data(driver,wait, datum,ort,guthaben,bezahlt):
     trans = Transaction(datum=datum,ort=ort, guthaben=guthaben, bezahlt=bezahlt, sub_trans=sub_trans)
     return trans
 
-
-
 def input(elem, text):
     elem.clear()
     elem.send_keys(text)
     return
+# === LOADING DATA ===
 
+def from_dict(sub_trans_dict):
+    return Sub_Trans(
+        datum=sub_trans_dict["datum"],
+        ort=sub_trans_dict["ort"],
+        kasse=sub_trans_dict["kasse"],
+        menge=sub_trans_dict["menge"],
+        produkt=sub_trans_dict["produkt"],
+        preis=sub_trans_dict["preis"]
+    )
 
-def createData_auto():
+def transaction_from_dict(transaction_dict):
+    sub_trans_list = [from_dict(st) for st in transaction_dict["sub_trans"]]
+    return Transaction(
+        datum=transaction_dict["datum"],
+        ort=transaction_dict["ort"],
+        guthaben=transaction_dict["guthaben"],
+        bezahlt=transaction_dict["bezahlt"],
+        sub_trans=sub_trans_list
+    )
+
+def mensa_from_dict(mensa_dict):
+    transactions_list = [transaction_from_dict(t) for t in mensa_dict["transactions"]]
+    return Mensa(transactions_list)
+
+# ============================
+
+def createData_auto(skip = False):
+    # Pfad zur JSON-Datei
+    latest_trans = None
+    mensa_old = None
+    file_path = 'mensa_data.json'
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        with open(file_path, 'r') as f:
+            mensa_dict = json.load(f)
+        # In Klassenobjekt umwandeln
+        mensa_old = mensa_from_dict(mensa_dict)
+        mensa_old.transactions.reverse()
+        latest_trans = mensa_old.last_trans()
+        print(type(latest_trans))
+        latest_trans = latest_trans.to_dict()
+        print(latest_trans)
+    else:
+        print("Die Datei existiert nicht oder ist leer.")
+    if skip:
+        return mensa_old
     mensa = Mensa()
     driver = webdriver.Firefox()  
     wait = WebDriverWait(driver, 10)
@@ -165,18 +240,29 @@ def createData_auto():
                 preis_parts = lines[2].split()
                 guthaben = preis_parts[0]
                 bezahlt = preis_parts[1]
-
-                transactions.append(read_data(driver,wait,datum,ort,guthaben,bezahlt))
-                mensa.append(read_data(driver,wait,datum,ort,guthaben,bezahlt))
+                trans = read_data(driver,wait,datum,ort,guthaben,bezahlt)
+                #print(f"\nCompare:\nN:{trans.to_dict()}\n\nO:{latest_trans}\n====================\n")
+                if trans.to_dict() == latest_trans:
+                    print("up to date")
+                    open_next = False
+                    break
+                transactions.append(trans)
+                mensa.append(trans)
                 #mensa.print_all_values()
+
             next_site.click()
         except:
             open_next = False
-        print(f"len {mensa.length()}")
         if mensa.length() >= 2:
-            break
-
+            #break #break early
+            continue
     driver.close()
+    if mensa_old != None:
+        mensa.transactions.reverse()
+        for val in mensa.transactions:
+            mensa_old.append(val)
+        mensa = mensa_old
+        mensa.transactions.reverse()
     print("done")
     mensa_dict = mensa.to_dict()
     print(f"Dic: {mensa_dict}")
@@ -186,5 +272,16 @@ def createData_auto():
     print("Saving!\n\n")
     with open('mensa_data.json', 'w') as json_file:
         json_file.write(json_data)
+    mensa.fix_types()
+    mensa.convert_types()
+    return mensa
 
-createData_auto()
+# ==== PLOTTING ====
+def plot_transactions(data):
+    x,y = data.get_simple_plot()
+    plt.scatter(x,y)
+    plt.show()
+
+data = createData_auto(True)
+data.convert_types()
+plot_transactions(data)
