@@ -17,6 +17,15 @@ import os
 import pandas as pd
 import json
 
+# ==== INPUTS ====
+fav_items = {"Item": ["Schoko-Milch", "Bockwurst-Brot-2xSenf", "Kuchen"], "Price":[0.85,1.95,1.8]}
+mid = 0 #time in days
+
+
+
+#================
+fav_items = pd.DataFrame(fav_items)
+
 class Mensa:
     def __init__(self,transactions = None):
         if transactions is None:
@@ -35,7 +44,7 @@ class Mensa:
     def get_simple_plot(self):
         x,y = [],[]
         for val in self.transactions:
-            if val.bezahlt <= 2:
+            if val.bezahlt <= 0:
                 continue
             x.append(val.datum)
             y.append(val.bezahlt)
@@ -314,8 +323,23 @@ def createData_auto(skip = False):
 
 # ==== PLOTTING ====
 def plot_transactions(data):
-    x,y = data.simple_mid_plot(7)
+    if mid == 0:
+        x,y = data.get_simple_plot()
+    else:
+        x,y = data.simple_mid_plot(mid)
+    plt.grid()
     plt.scatter(x,y)
+    print(f"fav item:{fav_items}\n\n")
+    for i in range(len(fav_items)):
+        item = fav_items["Item"][i]
+        price = fav_items["Price"][i]
+        print(f"val\n{item,price,type(price)}")
+        print(type(price) == type(np.float64(3.14)), type(price) != type(np.int64(42)),type(price) == type(3.14) or type(price) == type(42))
+        if (type(price) == type(np.float64(3.14))) != (type(price) == type(np.int64(42))):
+            plt.axhline(y=price, color='brown', linestyle='--', label=item)
+
+            print("print")
+    plt.legend()
     plt.show()
 
 data = createData_auto(False)
