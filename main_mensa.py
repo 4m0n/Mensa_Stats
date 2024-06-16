@@ -237,7 +237,7 @@ def simple_mid_plot(x,y,mid):
         
         # Berechnen des Durchschnitts für das Intervall
         avg_x.append(interval_data.index[int(len(interval_data) / 2)])  # Mittleres Datum im Intervall
-        avg_y.append(interval_data['value'].mean()) #durchschnittle ausgabe pro kauf
+        avg_y.append(interval_data['value'].sum()) #durchschnittle ausgabe pro kauf
         
         # Update des Startindex für das nächste Intervall
         start_idx = end_idx

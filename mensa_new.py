@@ -19,7 +19,7 @@ import json
 
 # ==== INPUTS ====
 fav_items = {"Item": ["Schoko-Milch", "Bockwurst-Brot-2xSenf", "Kuchen"], "Price":[0.85,1.95,1.8]}
-mid = 0 #time in days
+mid = 1 #time in days
 
 
 
@@ -42,51 +42,56 @@ class Mensa:
     def last_trans(self):
         return self.transactions[-1]
     def get_simple_plot(self):
-        x,y = [],[]
+        x,y, z = [],[],[]
         for val in self.transactions:
             if val.bezahlt <= 0:
                 continue
             x.append(val.datum)
             y.append(val.bezahlt)
-        print(f"{x}\n\n")
-        print(f"{y}\n\n")
-        return x,y
+            z.append(val.guthaben)
+        return x,y,z
     def simple_mid_plot(self,mid):
-        x,y = self.get_simple_plot()
+        x1,y1,z1 = self.get_simple_plot()
+        print("ehhh \n\n")
+        print(x1,z1)
+        print(len(x1),len(z1))
         # Überprüfen, ob die Eingabelisten gleich lang sind
-        if len(x) != len(y):
+        if len(x1) != len(y1):
             raise ValueError("Die Listen x und y müssen die gleiche Länge haben.")
-        
-        # Erstellen eines DataFrame zur einfacheren Handhabung
-        data = pd.DataFrame({'date': x, 'value': y})
-        
-        # Setzen des Datums als Index
-        data.set_index('date', inplace=True)
-        
-        # Sortieren nach Datum
-        data.sort_index(inplace=True)
-        
-        # Ergebnislisten
-        avg_x = []
+        x = [x1[0]]
+        y = [y1[0]]
+        for i in range(1,len(x1)-1):
+            if x1[i] == x1[i-1]:
+                y[-1]+=y1[i]
+            else:
+                x.append(x1[i])
+                y.append(y1[i])
+
         avg_y = []
-        
+
         # Berechnung der nicht-überlappenden Durchschnitte
-        start_idx = 0
-        while start_idx < len(data):
-            end_idx = start_idx + mid
-            interval_data = data.iloc[start_idx:end_idx]
-            
-            if len(interval_data) == 0:
-                break
-            
-            # Berechnen des Durchschnitts für das Intervall
-            avg_x.append(interval_data.index[int(len(interval_data) / 2)])  # Mittleres Datum im Intervall
-            avg_y.append(interval_data['value'].mean())
-            
-            # Update des Startindex für das nächste Intervall
-            start_idx = end_idx
+        min_date = min(x) 
+        max_date = max(x)
+
+        date_list = []
+        current_date = min_date
         
-        return avg_x, avg_y
+        while current_date <= max_date:
+            date_list.append(current_date)
+            current_date += timedelta(days=mid)
+        if date_list[-1] < max_date:
+            date_list.append(max_date)
+
+        avg_y =np.zeros(len(date_list))
+        for x2,y2 in zip(x,y):
+            for i in range(1,len(date_list)):
+                if x2 <= date_list[i] and x2 > date_list[i-1]:
+                    avg_y[i]+=y2 
+
+        print("ehhh \n\n")
+        print(x1,z1)
+        print(len(x1),len(z1))
+        return date_list, avg_y, x1, z1
 
 
     def convert_types(self):
@@ -241,9 +246,7 @@ def createData_auto(skip = False):
         mensa_old = mensa_from_dict(mensa_dict)
         mensa_old.transactions.reverse()
         latest_trans = mensa_old.last_trans()
-        print(type(latest_trans))
         latest_trans = latest_trans.to_dict()
-        print(latest_trans)
     else:
         print("Die Datei existiert nicht oder ist leer.")
     if skip:
@@ -309,38 +312,36 @@ def createData_auto(skip = False):
             mensa_old.append(val)
         mensa = mensa_old
         mensa.transactions.reverse()
-    print("done")
     mensa_dict = mensa.to_dict()
-    print(f"Dic: {mensa_dict}")
     # Konvertieren in JSON
     json_data = json.dumps(mensa_dict, indent=2)
     # Speichern in eine JSON-Datei
-    print("Saving!\n\n")
     with open('mensa_data.json', 'w') as json_file:
         json_file.write(json_data)
     mensa.convert_types()
+    print("Saved...\n")
     return mensa
 
 # ==== PLOTTING ====
-def plot_transactions(data):
+def plot_transactions(data,color,value):
     if mid == 0:
-        x,y = data.get_simple_plot()
+        x,y,x2,z = data.get_simple_plot()
     else:
-        x,y = data.simple_mid_plot(mid)
+        x,y,x2,z = data.simple_mid_plot(mid)
+    if value == "guthaben":
+        y = z
+        x = x2
     plt.grid()
     plt.scatter(x,y)
-    print(f"fav item:{fav_items}\n\n")
+    plt.fill_between(x,y,color=color, alpha = 0.2)
     for i in range(len(fav_items)):
         item = fav_items["Item"][i]
         price = fav_items["Price"][i]
-        print(f"val\n{item,price,type(price)}")
-        print(type(price) == type(np.float64(3.14)), type(price) != type(np.int64(42)),type(price) == type(3.14) or type(price) == type(42))
         if (type(price) == type(np.float64(3.14))) != (type(price) == type(np.int64(42))):
-            plt.axhline(y=price, color='brown', linestyle='--', label=item)
-
-            print("print")
+            plt.axhline(y=price, linestyle='--', label=item)
     plt.legend()
     plt.show()
 
 data = createData_auto(False)
-plot_transactions(data)
+plot_transactions(data, "blue", "price")
+plot_transactions(data, "red","guthaben")
