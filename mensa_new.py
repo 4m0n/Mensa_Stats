@@ -42,6 +42,44 @@ class Mensa:
         print(f"{x}\n\n")
         print(f"{y}\n\n")
         return x,y
+    def simple_mid_plot(self,mid):
+        x,y = self.get_simple_plot()
+        # Überprüfen, ob die Eingabelisten gleich lang sind
+        if len(x) != len(y):
+            raise ValueError("Die Listen x und y müssen die gleiche Länge haben.")
+        
+        # Erstellen eines DataFrame zur einfacheren Handhabung
+        data = pd.DataFrame({'date': x, 'value': y})
+        
+        # Setzen des Datums als Index
+        data.set_index('date', inplace=True)
+        
+        # Sortieren nach Datum
+        data.sort_index(inplace=True)
+        
+        # Ergebnislisten
+        avg_x = []
+        avg_y = []
+        
+        # Berechnung der nicht-überlappenden Durchschnitte
+        start_idx = 0
+        while start_idx < len(data):
+            end_idx = start_idx + mid
+            interval_data = data.iloc[start_idx:end_idx]
+            
+            if len(interval_data) == 0:
+                break
+            
+            # Berechnen des Durchschnitts für das Intervall
+            avg_x.append(interval_data.index[int(len(interval_data) / 2)])  # Mittleres Datum im Intervall
+            avg_y.append(interval_data['value'].mean())
+            
+            # Update des Startindex für das nächste Intervall
+            start_idx = end_idx
+        
+        return avg_x, avg_y
+
+
     def convert_types(self):
         for t in self.transactions:
             t.convert_types()
@@ -113,7 +151,6 @@ class Transaction:
         self.guthaben = float(re.sub(r'[^\d.-]', '', self.guthaben))
         self.bezahlt = self.bezahlt.replace(",",".")
         self.bezahlt = -float(re.sub(r'[^\d.-]', '', self.bezahlt)) #minus sieht schöner aus
-        print("yeees")
         for st in self.sub_trans:
             st.convert_types()
 
@@ -272,16 +309,14 @@ def createData_auto(skip = False):
     print("Saving!\n\n")
     with open('mensa_data.json', 'w') as json_file:
         json_file.write(json_data)
-    mensa.fix_types()
     mensa.convert_types()
     return mensa
 
 # ==== PLOTTING ====
 def plot_transactions(data):
-    x,y = data.get_simple_plot()
+    x,y = data.simple_mid_plot(7)
     plt.scatter(x,y)
     plt.show()
 
-data = createData_auto(True)
-data.convert_types()
+data = createData_auto(False)
 plot_transactions(data)
