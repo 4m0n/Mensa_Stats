@@ -14,7 +14,7 @@ import secret
 import os
 import pandas as pd
 
-duration = [10] # zeit in days for mid value
+duration = [30] # zeit in days for mid value
 fileName = "Mensa_Data" 
 #fileName = "data.txt" 
 
@@ -208,6 +208,41 @@ def createData_old(): # read data from file
     return zeit,y
 
 
+def simple_mid_plot(x,y,mid):
+    # Überprüfen, ob die Eingabelisten gleich lang sind
+    if len(x) != len(y):
+        raise ValueError("Die Listen x und y müssen die gleiche Länge haben.")
+    
+    # Erstellen eines DataFrame zur einfacheren Handhabung
+    data = pd.DataFrame({'date': x, 'value': y})
+    
+    # Setzen des Datums als Index
+    data.set_index('date', inplace=True)
+    
+    # Sortieren nach Datum
+    data.sort_index(inplace=True)
+    
+    # Ergebnislisten
+    avg_x = []
+    avg_y = []
+    
+    # Berechnung der nicht-überlappenden Durchschnitte
+    start_idx = 0
+    while start_idx < len(data):
+        end_idx = start_idx + mid
+        interval_data = data.iloc[start_idx:end_idx]
+        
+        if len(interval_data) == 0:
+            break
+        
+        # Berechnen des Durchschnitts für das Intervall
+        avg_x.append(interval_data.index[int(len(interval_data) / 2)])  # Mittleres Datum im Intervall
+        avg_y.append(interval_data['value'].mean()) #durchschnittle ausgabe pro kauf
+        
+        # Update des Startindex für das nächste Intervall
+        start_idx = end_idx
+    
+    return [avg_x], [avg_y]
 def medData(zeit,y,duration): # medium values for different zeit intervalls
     zeit3 = []
     wert = []
@@ -265,7 +300,7 @@ def plotData(zeit,y,zeit2 = None,y2 = None, fileName = "plot"):
 
 #zeit,y = createData_old()
 zeit, y = createData_auto()
-zeit2, y2 = medData(zeit,y,duration)
+zeit2, y2 = simple_mid_plot(zeit,y,duration[0])
 #print(datatext(zeit,y))
 plotData(zeit,y,zeit2,y2,fileName)
 
