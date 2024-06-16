@@ -1,22 +1,39 @@
 # Mensa ausgaben
-## Einrichten
+
+- main_mensa.py für die alte Version
+  
+- mensa_new.py für die neue Version
+
+## General Setup
 - **secret.py in folgender Form erstellen -> in selben Ordner speichern**
   ```py
   class secret:
     def name():
         return "Anmeldenummer"
     def pw():
-        return "Password"
+        return "Pw für alte Seite"
+    def email():
+        return "your.email@stud.uni-goettingen.de"
+    def pw2():
+        return "Pw für neue Seite"
   ```
-- main_mensa.py ist die Hauptdatei
-- mensa.py lädt nur die Daten in eine Datei (unvollständig)
-
+- diese code in secret.py kopieren udn speichern
 - gegebenfalls fehlende packages installieren
-  
-- Mensa_Data.csv und Mensa_Data.png werden erstellt
+## Setup neue Version
+- secret.py erstellen und pw2 und email eingeben
+- Inputs können ganz oben nach den Imports geändert werden
+- fav_items werden als hline angezeigt
+- mid = Anzahl an Tagen über die gemittelt werden soll 
+### Ausführen
 
-## Anpassen (alles in main_mensa.py)
-### Produkte hinzufügen/entfernen
+- ausführen mit 
+  ```
+      python3 mensa_new.py
+  ``` 
+
+## Setup alte Version
+
+
 Folgende Zeilen:
 ```py
     plt.axhline(y=0.85, color='brown', linestyle='--', label='Schoko Milch')
@@ -32,14 +49,13 @@ können an beliebge Preise und Produkte angepasst werden (es können auch weiter
 ```
 steht ganz oben und gibt die Anzahl der Tage an, über die eine Linie gemittelt werden soll
 
-## Ausführen
+### Ausführen
 - ausführen mit 
   ```
       python3 main_mensa.py
   ``` 
-- WICHTIG secret.py muss mit eigenen Daten existieren
 
-## Updates
+# Updates
 
 - vlt später
   

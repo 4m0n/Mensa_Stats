@@ -53,8 +53,6 @@ class Mensa:
     def simple_mid_plot(self,mid):
         x1,y1,z1 = self.get_simple_plot()
         print("ehhh \n\n")
-        print(x1,z1)
-        print(len(x1),len(z1))
         # Überprüfen, ob die Eingabelisten gleich lang sind
         if len(x1) != len(y1):
             raise ValueError("Die Listen x und y müssen die gleiche Länge haben.")
@@ -88,9 +86,6 @@ class Mensa:
                 if x2 <= date_list[i] and x2 > date_list[i-1]:
                     avg_y[i]+=y2 
 
-        print("ehhh \n\n")
-        print(x1,z1)
-        print(len(x1),len(z1))
         return date_list, avg_y, x1, z1
 
 
