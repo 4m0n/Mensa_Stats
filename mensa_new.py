@@ -129,6 +129,8 @@ class Sub_Trans:
             "preis": self.preis
         }
     def convert_types(self):
+        if len(self.datum) < 8: 
+            self.datum += ":00"
         self.datum = datetime.strptime(self.datum, "%H:%M:%S")
         self.preis = self.preis.replace(",",".")
         self.preis = -float(re.sub(r'[^\d.-]', '', self.preis)) #minues sieht schöner aus
