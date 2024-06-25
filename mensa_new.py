@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 from scipy import optimize
 from datetime import datetime, timedelta
+from collections import Counter, defaultdict
 import requests
 import time
 from selenium import webdriver 
@@ -87,13 +88,9 @@ class Mensa:
                     avg_y[i]+=y2 
 
         return date_list, avg_y, x1, z1
-
-
     def convert_types(self):
         for t in self.transactions:
             t.convert_types()
-
-
     def print_all_values(self):
         for index, transaction in enumerate(self.transactions, start=1):
             print(f"Transaction {index}:")
@@ -147,7 +144,6 @@ class Transaction:
         if sub_trans is None:
             sub_trans = [Sub_Trans()]
         self.sub_trans = sub_trans
-
     def to_dict(self):
         return {
             "datum": self.datum,
@@ -167,12 +163,6 @@ class Transaction:
 
 
 def read_data(driver,wait, datum,ort,guthaben,bezahlt):
-    guthaben = guthaben
-    bezahlt = bezahlt
-    datum = datum
-    ort = ort
-
-    #guthaben = 
     try:
         # Finde das <tbody>-Element mit der id "positionTable"
         time.sleep(1)
@@ -319,6 +309,116 @@ def createData_auto(skip = False):
     print("Saved...\n")
     return mensa
 
+# ====  Statistiken ====
+def torten_ort(data):
+    ort=[]
+    k=len(data.transactions)
+    for i in range(k):
+        ort.append(data.transactions[i].ort)
+    myset=set(ort)
+    no=list(myset)
+
+
+    print(no)
+    wert=[]
+    for i in range(len(no)):
+        wert.append(ort.count(no[i]))
+
+    plt.pie(wert,labels=no,autopct="%1.1f%%")
+    plt.axis("equal")
+    plt.show()
+
+    print(ort)
+
+
+def meals(data):
+    products = []
+
+    # Daten sammeln
+    for trans in data.transactions:
+        for sub_trans in trans.sub_trans:
+            products.append((sub_trans.produkt, sub_trans.preis))
+
+    # Anzahl der Käufe zählen
+    product_counts = Counter([product for product, _ in products])
+
+    # Gesamtpreis berechnen
+    total_prices = defaultdict(float)
+    for product, price in products:
+        total_prices[product] += price
+
+    # Kombinierte Liste erstellen: (Produkt, Anzahl, Gesamtpreis)
+    combined_data = [(product, product_counts[product], total_prices[product]) for product in product_counts]
+
+    # Sortieren nach der Anzahl der Käufe (und falls nötig, nach anderen Kriterien)
+    sorted_by_count = sorted(combined_data, key=lambda item: item[1], reverse=True)[:15]
+    sorted_by_total_price = sorted(combined_data, key=lambda item: item[2], reverse=True)[:15]
+
+    # Benutzerspezifische Funktionen für autopct
+    def make_autopct(values):
+        def my_autopct(pct):
+            total = sum(values)
+            val = int(round(pct*total/100.0))
+            return f'{val:d}'
+        return my_autopct
+
+    # Tortendiagramme erstellen
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    plt.subplots_adjust(wspace=0.4)  # Abstand zwischen den Plots
+
+    # Schriftgröße anpassen
+    plt.rcParams.update({'font.size': 10})
+
+    # Anzahl der Käufe
+    labels_count = [item[0] for item in sorted_by_count]
+    sizes_count = [item[1] for item in sorted_by_count]
+    ax1.pie(sizes_count, labels=labels_count, autopct=make_autopct(sizes_count), startangle=140)
+    ax1.set_title('Top 15 Products by Number of Purchases', fontsize=14)
+
+    # Gesamtpreis
+    labels_price = [item[0] for item in sorted_by_total_price]
+    sizes_price = [item[2] for item in sorted_by_total_price]
+    ax2.pie(sizes_price, labels=labels_price, autopct=make_autopct(sizes_price), startangle=140)
+    ax2.set_title('Top 15 Products by Total Spend', fontsize=14)
+
+    plt.show()
+
+
+
+    products = []
+    for trans in data.transactions:
+        for sub_trans in trans.sub_trans:
+            products.append((sub_trans.produkt,sub_trans.preis))
+    products = dict(Counter(products))
+    print(products)
+    products = sorted(products.items(),key=lambda item: item[1])
+
+    print(f"PRODUKTA:\n\n {products}\n\n")
+    x, y, z = [], [], []
+    for (a,c),b in products:
+        x.append(np.array(b))
+        y.append(a)
+        z.append(c*b) # gesamt preis
+
+
+
+    x_common = x[15:]
+    y_common = y[15:]
+    z_common = z[15:]
+    x_very_common = x[3:]
+    y_very_common = y[3:]
+    z_very_common = z[3:]
+
+    print(f"x: {x_common} y: {y_common} z: {z_common}")
+    def absolute_value(val):
+        #a = np.round(val/100.*sum(z_common), 0)
+        a = np.round(val,1)
+        return a
+    plt.pie(z_common,labels = y_common, autopct=absolute_value)
+    plt.show()
+
+    print(products)
+
 # ==== PLOTTING ====
 def plot_transactions(data,color,value):
     if mid == 0:
@@ -340,5 +440,7 @@ def plot_transactions(data,color,value):
     plt.show()
 
 data = createData_auto(False)
-plot_transactions(data, "blue", "price")
-plot_transactions(data, "red","guthaben")
+meals(data)
+#torten_ort(data)
+#plot_transactions(data, "blue", "price")
+#plot_transactions(data, "red","guthaben")
