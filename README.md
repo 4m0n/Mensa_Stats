@@ -7,7 +7,7 @@
 ## General Setup
 - **secret.py in folgender Form erstellen -> in selben Ordner speichern**
   ```py
-  class secret:
+  class login:
     def name():
         return "Anmeldenummer"
     def pw():

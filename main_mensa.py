@@ -45,10 +45,10 @@ def createData_auto():
     iframe = wait.until(EC.presence_of_element_located((By.NAME, "tx_iframe")))
     driver.switch_to.frame(iframe)
     knummer = wait.until(EC.visibility_of_element_located((By.NAME, "knr")))
-    input(knummer, secret.secret.name())
+    input(knummer, secret.login.name())
     # === LOGIN === 
     pword = driver.find_element(By.NAME, "pw")
-    input(pword, secret.secret.pw())
+    input(pword, secret.login.pw())
     # === BUTTON LOGIN === 
     button = wait.until(EC.visibility_of_element_located((By.NAME, "login")))
     button.submit()

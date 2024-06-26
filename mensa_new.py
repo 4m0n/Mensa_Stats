@@ -4,6 +4,7 @@ import scipy.stats as stats
 from scipy import optimize
 from datetime import datetime, timedelta
 from collections import Counter, defaultdict
+from fpdf import FPDF
 import requests
 import time
 from selenium import webdriver 
@@ -26,6 +27,24 @@ mid = 1 #time in days
 
 #================
 fav_items = pd.DataFrame(fav_items)
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Statistiken zu Ausgaben mit dem Studentenausweis', 0, 1, 'C')
+
+    def chapter_title(self, title):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, title, 0, 1, 'L')
+        self.ln(10)
+
+    def chapter_body(self, body):
+        self.set_font('Arial', '', 12)
+        self.multi_cell(0, 10, body)
+        self.ln()
+
+    def add_image(self, image_path, x=None, y=None, w=0, h=0):
+        self.image(image_path, x, y, w, h)
+        self.ln(10)
 
 class Mensa:
     def __init__(self,transactions = None):
@@ -245,10 +264,10 @@ def createData_auto(skip = False):
     driver.fullscreen_window()
     # === KARTENNUMMER ===
     email = wait.until(EC.presence_of_element_located((By.ID, "email")))
-    input(email, secret.secret.email())
+    input(email, secret.login.email())
     # === LOGIN === 
     pword = driver.find_element(By.ID, "password")
-    input(pword, secret.secret.pw2())
+    input(pword, secret.login.pw2())
     # === BUTTON LOGIN === 
     button = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.bg-red-500")))
     button.submit()
@@ -337,14 +356,16 @@ def meals(data):
     # Daten sammeln
     for trans in data.transactions:
         for sub_trans in trans.sub_trans:
-            products.append((sub_trans.produkt, sub_trans.preis))
+            products.append((sub_trans.produkt, sub_trans.preis, sub_trans.menge))
 
     # Anzahl der Käufe zählen
-    product_counts = Counter([product for product, _ in products])
+    product_counts = Counter()
+    for product, _, menge in products:
+        product_counts[product] += menge
 
     # Gesamtpreis berechnen
     total_prices = defaultdict(float)
-    for product, price in products:
+    for product, price, menge in products:
         total_prices[product] += price
 
     # Kombinierte Liste erstellen: (Produkt, Anzahl, Gesamtpreis)
@@ -358,7 +379,7 @@ def meals(data):
     def make_autopct(values):
         def my_autopct(pct):
             total = sum(values)
-            val = int(round(pct*total/100.0))
+            val = int(round(pct * total / 100.0))
             return f'{val:d}'
         return my_autopct
 
@@ -383,42 +404,73 @@ def meals(data):
 
     plt.show()
 
+def payed_at_time(data):
+    def rounder(t):
+        if t.minute >= 30:
+            return t.replace(second=0, minute=0, hour=t.hour+1)
+        else:
+            return t.replace(second=0, minute=0)
+    
+    payed = []
+    times = []
 
-
-    products = []
     for trans in data.transactions:
         for sub_trans in trans.sub_trans:
-            products.append((sub_trans.produkt,sub_trans.preis))
-    products = dict(Counter(products))
-    print(products)
-    products = sorted(products.items(),key=lambda item: item[1])
+            if sub_trans.preis > 0: 
+                times.append(rounder(sub_trans.datum))
+                payed.append(sub_trans.preis)
 
-    print(f"PRODUKTA:\n\n {products}\n\n")
-    x, y, z = [], [], []
-    for (a,c),b in products:
-        x.append(np.array(b))
-        y.append(a)
-        z.append(c*b) # gesamt preis
+    df = pd.DataFrame({'zeit': times, 'price': payed})
 
+    # Alle möglichen abgerundeten Zeiten innerhalb des Zeitraums erstellen
+    start_time = min(times).replace(minute=0, second=0, hour=6)
+    end_time = max(times).replace(minute=0, second=0, hour=20)
+    all_times = pd.date_range(start=start_time, end=end_time, freq='H').to_pydatetime().tolist()
 
+    # Sicherstellen, dass alle Zeiten im DataFrame vorhanden sind
+    all_times_df = pd.DataFrame({'zeit': all_times})
+    df = pd.merge(all_times_df, df, on='zeit', how='left').fillna(0)
 
-    x_common = x[15:]
-    y_common = y[15:]
-    z_common = z[15:]
-    x_very_common = x[3:]
-    y_very_common = y[3:]
-    z_very_common = z[3:]
+    # Anzahl der Käufe pro abgerundeter Uhrzeit
+    counts = df['zeit'].value_counts().sort_index()
 
-    print(f"x: {x_common} y: {y_common} z: {z_common}")
-    def absolute_value(val):
-        #a = np.round(val/100.*sum(z_common), 0)
-        a = np.round(val,1)
-        return a
-    plt.pie(z_common,labels = y_common, autopct=absolute_value)
+    # Gesamtausgaben pro abgerundeter Uhrzeit
+    total_spent = df.groupby('zeit')['price'].sum()
+
+    #counts auf 0 setzen da sonst immer 1 gezählt wird auch wenn nichts gekauft wurde
+    for i in range(len(total_spent)):
+        if total_spent[i] == 0:
+            counts[i] = 0
+
+    print("Anzahl der Käufe pro abgerundeter Uhrzeit:")
+    print(counts)
+    print("\nGesamtausgaben pro abgerundeter Uhrzeit:")
+    print(total_spent)
+
+    # Plotting
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+
+    ax2 = ax1.twinx()
+    counts.plot(kind='bar', ax=ax1, color='blue', position=0, width=0.4, label='Anzahl der Käufe')
+    total_spent.plot(kind='bar', ax=ax2, color='orange', position=1, width=0.4, label='Gesamtausgaben', alpha=0.7)
+
+    ax1.set_xlabel('Uhrzeit')
+    ax1.set_ylabel('Anzahl der Käufe')
+    ax2.set_ylabel('Gesamtausgaben (€)')
+
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='upper left')
+
+    plt.title('Anzahl der Käufe und Gesamtausgaben pro Uhrzeit')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     plt.show()
 
-    print(products)
-
+def to_pdf():
+    pdf = PDF()
+    pdf.add_page()
+    pdf.chapter_body("test")
+    pdf.output("Statistik.pdf")
 # ==== PLOTTING ====
 def plot_transactions(data,color,value):
     if mid == 0:
@@ -440,7 +492,9 @@ def plot_transactions(data,color,value):
     plt.show()
 
 data = createData_auto(False)
-meals(data)
+#payed_at_time(data)
+#meals(data)
 #torten_ort(data)
 #plot_transactions(data, "blue", "price")
 #plot_transactions(data, "red","guthaben")
+to_pdf()
