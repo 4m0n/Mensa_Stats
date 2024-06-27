@@ -22,8 +22,8 @@
 ## Setup neue Version
 - secret.py erstellen und pw2 und email eingeben
 - Inputs können ganz oben nach den Imports geändert werden
-- fav_items werden als hline angezeigt
 - mid = Anzahl an Tagen über die gemittelt werden soll 
+- -show = Boolean ob die Plots angezeigt werden sollen (sonst werden sie nur )
 ### Ausführen
 
 - ausführen mit 

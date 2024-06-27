@@ -20,17 +20,18 @@ import pandas as pd
 import json
 
 # ==== INPUTS ====
-fav_items = {"Item": ["Schoko-Milch", "Bockwurst-Brot-2xSenf", "Kuchen"], "Price":[0.85,1.95,1.8]}
-mid = 1 #time in days
+mid = 1 # Zeit in Tagen
+show = False # Plots anzeigen
 
 
 #================
 
 # do not change
+if not os.path.exists("pictures"):
+    os.makedirs("pictures")
 
-plot_names = ["torten_ort","meals","payed_time","guthaben","bezahlt"]
+plot_names = ["torten_ort","meals","payed_time","guthaben","bezahlt","payed_day"]
 
-fav_items = pd.DataFrame(fav_items)
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 12)
@@ -323,7 +324,6 @@ def createData_auto(skip = False):
                     break
                 transactions.append(trans)
                 mensa.append(trans)
-                #mensa.print_all_values()
 
             next_site.click()
         except:
@@ -366,6 +366,110 @@ def torten_ort(data, show = True):
     plt.savefig("pictures/"+plot_names[0] + ".jpeg",dpi = 600)
     if show:
         plt.show()
+    else:
+        plt.close()
+
+
+
+"""def wo_tag_zahl2(data):
+    WT = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    k = len(data.transactions)
+
+    # Initialisiere leere Series für Anzahl und Preise
+    werte = pd.Series(0, index=WT)
+    preise = pd.Series(0.0, index=WT)
+
+    for i in range(k):
+        if data.transactions[i].bezahlt < 0:
+            continue
+        day_of_week = data.transactions[i].datum.strftime("%A")
+        if day_of_week in werte:
+            werte[day_of_week] += 1
+            preise[day_of_week] += data.transactions[i].bezahlt
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+
+    ax2 = ax1.twinx()
+    werte.plot(kind='bar', ax=ax1, color='blue', position=0, width=0.4, label='Anzahl der Käufe')
+    preise.plot(kind='bar', ax=ax2, color='orange', position=1, width=0.4, label='Gesamtausgaben', alpha=0.7)
+
+
+    ax1.set_xlabel('Uhrzeit')
+    ax1.set_ylabel('Anzahl der Käufe')
+    ax2.set_ylabel('Gesamtausgaben (€)')
+
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='upper left')
+    plt.title('Anzahl der Käufe und Gesamtausgaben pro Uhrzeit')
+    plt.tight_layout()
+    plt.savefig("pictures/"+plot_names[5]+".jpeg",dpi = 600)
+    if show:
+        plt.show()
+    else:
+        plt.close()"""
+    
+def wo_tag_zahl(data):
+
+    WT=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    k=len(data.transactions)
+    mo,di,mit,do,fr,sa,so = 0,0,0,0,0,0,0
+    mop,dip,mitp,dop,frp,sap,sop=0,0,0,0,0,0,0
+    for i in range(k):
+        if data.transactions[i].bezahlt<0:
+            continue
+        if data.transactions[i].datum.strftime("%A")=="Monday":
+            mo+=1
+            mop+=data.transactions[i].bezahlt
+        elif data.transactions[i].datum.strftime("%A")=="Tuesday":
+            di+=1
+            dip+=data.transactions[i].bezahlt
+        elif data.transactions[i].datum.strftime("%A")=="Wednesday":
+            mit+=1
+            mitp+=data.transactions[i].bezahlt
+        elif data.transactions[i].datum.strftime("%A")=="Thursday":
+            do+=1
+            dop+=data.transactions[i].bezahlt
+        elif data.transactions[i].datum.strftime("%A")=="Friday":
+            fr+=1
+            frp+=data.transactions[i].bezahlt
+        elif data.transactions[i].datum.strftime("%A")=="Saturday":
+            sa+=1
+            sap+=data.transactions[i].bezahlt
+        elif data.transactions[i].datum.strftime("%A")=="Sunday":
+            so+=1
+            sop+=data.transactions[i].bezahlt
+
+    werte=[mo,di,mit,do,fr,sa,so]
+    preise=[mop,dip,mitp,dop,frp,sap,sop]
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+
+    ax2 = ax1.twinx()
+
+    bar_width = 0.4
+    x = np.arange(len(WT))
+
+    # Plot der Anzahl der Käufe mit einem Offset nach links
+    ax1.bar(x - bar_width / 2, werte, bar_width, color='blue', label='Anzahl der Käufe')
+
+    # Plot der Gesamtausgaben mit einem Offset nach rechts
+    ax2.bar(x + bar_width / 2, preise, bar_width, color='orange', alpha=0.7, label='Gesamtausgaben')
+
+    ax1.set_xlabel('Wochentag')
+    ax1.set_ylabel('Anzahl der Käufe')
+    ax2.set_ylabel('Gesamtausgaben (€)')
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(WT)
+
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='upper left')
+
+    plt.title('Anzahl der Käufe und Gesamtausgaben pro Wochentag')
+    plt.tight_layout()
+    plt.savefig("pictures/"+plot_names[5]+".jpeg", dpi=600)
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def meals(data, show = True):
@@ -422,6 +526,9 @@ def meals(data, show = True):
     plt.savefig("pictures/"+plot_names[1] + ".jpeg",dpi = 600)
     if show:
         plt.show()
+    else:
+        plt.close()
+    
 
 def payed_at_time(data, show = True):
     def rounder(t):
@@ -480,6 +587,9 @@ def payed_at_time(data, show = True):
     plt.savefig("pictures/"+plot_names[2]+".jpeg",dpi = 600)
     if show:
         plt.show()
+    else:
+        plt.close()
+
 
 
 def to_pdf():
@@ -497,18 +607,21 @@ def to_pdf():
     pdf.chapter_title(f"Durchschnittliche Ausgaben pro: {mid}Tage")
     image = str(plot_names[3]+".jpeg")
     pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20) 
-    pdf.chapter_body("In Diesem Diagram sind die Ausgaben dargestellt. Es wurde ein Intervall festgelegt, indem alle Transaktionen zusammen gerechnet werden, dieses beträgt hier {mid}Tage.")
-
+    pdf.chapter_body(f"In Diesem Diagram sind die Ausgaben dargestellt. Es wurde ein Intervall festgelegt, indem alle Transaktionen zusammen gerechnet werden, dieses beträgt hier {mid}Tage.")
+    #Ausgaben nach Menge und Geld
+    pdf.add_page()
+    pdf.chapter_title("Top Produkte nach Menge und Preis")
+    image = str(plot_names[1]+".jpeg")
+    pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20) 
+    pdf.chapter_body(f"Hier wird dargestellt, wieviel Produkte der selben Art man gekauft hat. Ausserdem ist zu sehen, wieviel man insgesamt für diese Produkte bezahlt hat. Dabei werden nur die Top 15 Produkte angezeigt.")
     # Kuchendiagram Orte
     pdf.add_page()
     image = str(plot_names[0]+".jpeg")
     pdf.chapter_title("Dargestellt ist die Verteilung der am häufigst besuchten Einrichtungen")
     pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20)  
-
-
     #Tages vergleich
     pdf.add_page()
-    image = str(plot_names[2]+".jpeg")
+    image = str(plot_names[5]+".jpeg")
     pdf.chapter_title("Verteilung der Ausgaben über die Wochentage")
     pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20)  
     pdf.chapter_body("Es wurde der pro Tage ausgegebene Betrag dargestellt, somit kann dem Diagram entnommen werden, zu welchen Tagen am meisten Geld ausgegeben wurde.")
@@ -520,10 +633,11 @@ def to_pdf():
    
 
     pdf.output("Statistik.pdf")
-
+    print("\n==============\n\n\n\n\nPDF READY\n\n\n\n\n==============\n")
 
 
 # ==== PLOTTING ====
+
 def plot_transactions(data,color,value, show = True):
     name = plot_names[3]
     if mid == 0:
@@ -537,24 +651,20 @@ def plot_transactions(data,color,value, show = True):
     plt.grid()
     plt.scatter(x,y)
     plt.fill_between(x,y,color=color, alpha = 0.2)
-    for i in range(len(fav_items)):
-        item = fav_items["Item"][i]
-        price = fav_items["Price"][i]
-        if (type(price) == type(np.float64(3.14))) != (type(price) == type(np.int64(42))):
-            plt.axhline(y=price, linestyle='--', label=item)
     plt.legend()
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig("pictures/"+name+".jpeg",dpi = 600)
     if show:
         plt.show()
+    else:
+        plt.close()
 
-show = True
 data = createData_auto(False)
-#payed_at_time(data,show)
-#meals(data, show)
-#torten_ort(data, show)
+payed_at_time(data,show)
+meals(data, show)
+torten_ort(data, show)
 plot_transactions(data, "blue", "price", show)
-plot_transactions(data, "red","guthaben")
+plot_transactions(data, "red","guthaben",show)
+wo_tag_zahl(data)
 to_pdf()
-print("\n==============\n\n\n\n\nPDF READY\n\n\n\n\n==============\n")
