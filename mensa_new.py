@@ -464,7 +464,7 @@ def wo_tag_zahl(data):
     ax1.bar(x - bar_width / 2, werte, bar_width, color='blue', label='Anzahl der Käufe')
 
     # Plot der Gesamtausgaben mit einem Offset nach rechts
-    ax2.bar(x + bar_width / 2, preise, bar_width, color='orange', alpha=0.7, label='Durschnittliche Gesamtausgaben')
+    ax2.bar(x + bar_width / 2, preise, bar_width, color='orange', label='Durschnittliche Gesamtausgaben')
 
     ax1.set_xlabel('Wochentag')
     ax1.set_ylabel('Anzahl der Käufe')
@@ -475,6 +475,9 @@ def wo_tag_zahl(data):
 
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper right')
+
+    ax1.set_axisbelow(True)
+    ax1.yaxis.grid(color='gray', linestyle='dashed')
 
     plt.title('Anzahl der Käufe und Gesamtausgaben pro Wochentag')
     plt.tight_layout()
@@ -605,7 +608,6 @@ def payed_at_time(data, show = True):
         total_spent.iloc[i] = total_spent.iloc[i]/counts.iloc[i]
     # Plotting
     fig, ax1 = plt.subplots(figsize=(12, 6))
-
     ax2 = ax1.twinx()
     counts.plot(kind='bar', ax=ax1, color='blue', position=1, width=0.4, label='Anzahl der Käufe')
     total_spent.plot(kind='bar', ax=ax2, color='orange', position=0, width=0.4, label='Durschnittliche Gesamtausgaben', alpha=0.7)
@@ -617,6 +619,10 @@ def payed_at_time(data, show = True):
     ax2.legend(loc='upper right')
     ax1.legend(loc='upper left')
     ax1.set_xticklabels([dt.strftime('%H:%M') for dt in counts.index], rotation=45)
+    
+    ax1.set_axisbelow(True)
+    ax1.yaxis.grid(color='gray', linestyle='dashed')
+
     plt.title('Anzahl der Käufe und Gesamtausgaben pro Uhrzeit')
     plt.tight_layout()
     plt.savefig("pictures/"+plot_names[2]+".jpeg",dpi = 600)
@@ -685,7 +691,7 @@ def plot_transactions(data,color,value, show = True):
         name = plot_names[4]
     plt.grid()
     plt.fill_between(x,y,color=color, alpha = 0.2)
-    plt.bar(x,y, color=color, alpha = 0.6,edgecolor = "black")
+    plt.bar(x,y, color=color, alpha = 0.6,edgecolor = "black", label = value)
     plt.legend()
     plt.xticks(rotation=45)
     plt.tight_layout()
