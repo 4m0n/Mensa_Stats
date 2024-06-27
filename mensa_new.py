@@ -126,6 +126,7 @@ class Mensa:
             for i in range(1,len(date_list)):
                 if x2 <= date_list[i] and x2 > date_list[i-1]:
                     avg_y[i]+=y2 
+        
 
         return date_list, avg_y, x1, z1
     def convert_types(self):
@@ -361,8 +362,14 @@ def torten_ort(data, show = True):
     for i in range(len(no)):
         wert.append(ort.count(no[i]))
 
-    plt.pie(wert,labels=no,autopct="%1.1f%%")
-    plt.axis("equal")
+    explode = [0.05] * len(wert)
+
+    plt.pie(wert,labels=no,autopct="%1.1f%%", pctdistance=0.85, explode = explode,startangle=90)
+    centre_circle = plt.Circle((0,0),0.70,fc='white')
+    fig = plt.gcf()
+    fig.gca().add_artist(centre_circle)
+    plt.axis('equal')  
+    plt.tight_layout()
     plt.savefig("pictures/"+plot_names[0] + ".jpeg",dpi = 600)
     if show:
         plt.show()
@@ -440,6 +447,12 @@ def wo_tag_zahl(data):
 
     werte=[mo,di,mit,do,fr,sa,so]
     preise=[mop,dip,mitp,dop,frp,sap,sop]
+
+    #Durchschnitt bestimmen
+    for i in range(len(werte)):
+        if werte[i] == 0:
+            continue
+        preise[i] = preise[i]/werte[i]
     fig, ax1 = plt.subplots(figsize=(12, 6))
 
     ax2 = ax1.twinx()
@@ -451,7 +464,7 @@ def wo_tag_zahl(data):
     ax1.bar(x - bar_width / 2, werte, bar_width, color='blue', label='Anzahl der Käufe')
 
     # Plot der Gesamtausgaben mit einem Offset nach rechts
-    ax2.bar(x + bar_width / 2, preise, bar_width, color='orange', alpha=0.7, label='Gesamtausgaben')
+    ax2.bar(x + bar_width / 2, preise, bar_width, color='orange', alpha=0.7, label='Durschnittliche Gesamtausgaben')
 
     ax1.set_xlabel('Wochentag')
     ax1.set_ylabel('Anzahl der Käufe')
@@ -460,8 +473,8 @@ def wo_tag_zahl(data):
     ax1.set_xticks(x)
     ax1.set_xticklabels(WT)
 
-    ax1.legend(loc='upper right')
-    ax2.legend(loc='upper left')
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
 
     plt.title('Anzahl der Käufe und Gesamtausgaben pro Wochentag')
     plt.tight_layout()
@@ -494,8 +507,8 @@ def meals(data, show = True):
     combined_data = [(product, product_counts[product], total_prices[product]) for product in product_counts]
 
     # Sortieren nach der Anzahl der Käufe (und falls nötig, nach anderen Kriterien)
-    sorted_by_count = sorted(combined_data, key=lambda item: item[1], reverse=True)[:15]
-    sorted_by_total_price = sorted(combined_data, key=lambda item: item[2], reverse=True)[:15]
+    sorted_by_count = sorted(combined_data, key=lambda item: item[1], reverse=True)[:10]
+    sorted_by_total_price = sorted(combined_data, key=lambda item: item[2], reverse=True)[:10]
 
     # Benutzerspezifische Funktionen für autopct
     def make_autopct(values):
@@ -506,8 +519,8 @@ def meals(data, show = True):
         return my_autopct
 
     # Tortendiagramme erstellen
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-    plt.subplots_adjust(wspace=0.4)  # Abstand zwischen den Plots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+    plt.subplots_adjust(wspace=0.6)  # Abstand zwischen den Plots
 
     # Schriftgröße anpassen
     plt.rcParams.update({'font.size': 10})
@@ -515,14 +528,24 @@ def meals(data, show = True):
     # Anzahl der Käufe
     labels_count = [item[0] for item in sorted_by_count]
     sizes_count = [item[1] for item in sorted_by_count]
-    ax1.pie(sizes_count, labels=labels_count, autopct=make_autopct(sizes_count), startangle=140)
+    explode = [0.05] * len(sizes_count)
+
+    ax1.pie(sizes_count, labels=labels_count, autopct=make_autopct(sizes_count), startangle=90, pctdistance=0.85, explode = explode)
+    ax1.pie([1,2], colors = ["white","white"],radius = 0.7)
     ax1.set_title('Top 15 Products by Number of Purchases', fontsize=14)
+    plt.axis('equal')  
+
 
     # Gesamtpreis
     labels_price = [item[0] for item in sorted_by_total_price]
     sizes_price = [item[2] for item in sorted_by_total_price]
-    ax2.pie(sizes_price, labels=labels_price, autopct=make_autopct(sizes_price), startangle=140)
+
+    ax2.pie(sizes_price, labels=labels_price, autopct=make_autopct(sizes_price), startangle=90, pctdistance=0.85, explode = explode)
+    ax2.pie([1,2], colors = ["white","white"],radius = 0.7)
     ax2.set_title('Top 15 Products by Total Spend', fontsize=14)
+    plt.axis('equal')  
+
+    plt.tight_layout()
     plt.savefig("pictures/"+plot_names[1] + ".jpeg",dpi = 600)
     if show:
         plt.show()
@@ -539,19 +562,26 @@ def payed_at_time(data, show = True):
     
     payed = []
     times = []
-
+    payed2 = 0.0
+    times2 = None
     for trans in data.transactions:
         for sub_trans in trans.sub_trans:
             if sub_trans.preis > 0: 
-                times.append(rounder(sub_trans.datum))
-                payed.append(sub_trans.preis)
+                payed2+=sub_trans.preis
+                times2 = rounder(sub_trans.datum)
+            if times2 == None:
+                continue
+            times.append(times2)
+            payed.append(payed2)
+            payed2 = 0.0
+            times2 = None
 
     df = pd.DataFrame({'zeit': times, 'price': payed})
 
     # Alle möglichen abgerundeten Zeiten innerhalb des Zeitraums erstellen
     start_time = min(times).replace(minute=0, second=0, hour=6)
     end_time = max(times).replace(minute=0, second=0, hour=20)
-    all_times = pd.date_range(start=start_time, end=end_time, freq='H').to_pydatetime().tolist()
+    all_times = pd.date_range(start=start_time, end=end_time, freq='h').to_pydatetime().tolist()
 
     # Sicherstellen, dass alle Zeiten im DataFrame vorhanden sind
     all_times_df = pd.DataFrame({'zeit': all_times})
@@ -565,22 +595,27 @@ def payed_at_time(data, show = True):
 
     #counts auf 0 setzen da sonst immer 1 gezählt wird auch wenn nichts gekauft wurde
     for i in range(len(total_spent)):
-        if total_spent[i] == 0:
-            counts[i] = 0
+        if total_spent.iloc[i] == 0:
+            counts.iloc[i] = 0
 
+    #Durchschnitt bestimmen
+    for i in range(len(counts)):
+        if counts.iloc[i] == 0:
+            continue
+        total_spent.iloc[i] = total_spent.iloc[i]/counts.iloc[i]
     # Plotting
     fig, ax1 = plt.subplots(figsize=(12, 6))
 
     ax2 = ax1.twinx()
-    counts.plot(kind='bar', ax=ax1, color='blue', position=0, width=0.4, label='Anzahl der Käufe')
-    total_spent.plot(kind='bar', ax=ax2, color='orange', position=1, width=0.4, label='Gesamtausgaben', alpha=0.7)
+    counts.plot(kind='bar', ax=ax1, color='blue', position=1, width=0.4, label='Anzahl der Käufe')
+    total_spent.plot(kind='bar', ax=ax2, color='orange', position=0, width=0.4, label='Durschnittliche Gesamtausgaben', alpha=0.7)
 
     ax1.set_xlabel('Uhrzeit')
     ax1.set_ylabel('Anzahl der Käufe')
     ax2.set_ylabel('Gesamtausgaben (€)')
 
-    ax1.legend(loc='upper right')
-    ax2.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+    ax1.legend(loc='upper left')
     ax1.set_xticklabels([dt.strftime('%H:%M') for dt in counts.index], rotation=45)
     plt.title('Anzahl der Käufe und Gesamtausgaben pro Uhrzeit')
     plt.tight_layout()
@@ -649,8 +684,8 @@ def plot_transactions(data,color,value, show = True):
         x = x2
         name = plot_names[4]
     plt.grid()
-    plt.scatter(x,y)
     plt.fill_between(x,y,color=color, alpha = 0.2)
+    plt.bar(x,y, color=color, alpha = 0.6,edgecolor = "black")
     plt.legend()
     plt.xticks(rotation=45)
     plt.tight_layout()
