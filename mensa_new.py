@@ -24,17 +24,21 @@ fav_items = {"Item": ["Schoko-Milch", "Bockwurst-Brot-2xSenf", "Kuchen"], "Price
 mid = 1 #time in days
 
 
-
 #================
+
+# do not change
+
+plot_names = ["torten_ort","meals","payed_time","guthaben","bezahlt"]
+
 fav_items = pd.DataFrame(fav_items)
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Statistiken zu Ausgaben mit dem Studentenausweis', 0, 1, 'C')
+        self.cell(0, 10, 'Statistiken zu den Ausgaben über den Studentenausweises', 0, 1, 'C')
 
     def chapter_title(self, title):
         self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, title, 0, 1, 'L')
+        self.cell(0, 10, title, 0, 1, 'C')
         self.ln(10)
 
     def chapter_body(self, body):
@@ -45,6 +49,23 @@ class PDF(FPDF):
     def add_image(self, image_path, x=None, y=None, w=0, h=0):
         self.image(image_path, x, y, w, h)
         self.ln(10)
+
+    def add_images_side_by_side(self, image1_path, image2_path, image_width, image_height):
+        y = 200
+        self.image(image1_path, x=10,y = y, w=image_width)
+        #self.image(image2_path, x=self.w / 2 + 10, w=image_width)
+        self.image(image2_path, x=100, y = y , w = image_width)
+        self.ln(image_width + 10)
+
+    def add_text_and_image(self, text, image_path, image_width):
+        # Text on the left
+        self.set_xy(10, self.get_y())
+        self.multi_cell(self.w / 2 - 15, 10, text)
+        
+        # Image on the right
+        self.set_xy(self.w / 2 + 10, self.get_y() - (len(text.split('\n')) * 10))
+        self.image(image_path, w=image_width)
+        self.ln(image_width + 10)
 
 class Mensa:
     def __init__(self,transactions = None):
@@ -72,7 +93,6 @@ class Mensa:
         return x,y,z
     def simple_mid_plot(self,mid):
         x1,y1,z1 = self.get_simple_plot()
-        print("ehhh \n\n")
         # Überprüfen, ob die Eingabelisten gleich lang sind
         if len(x1) != len(y1):
             raise ValueError("Die Listen x und y müssen die gleiche Länge haben.")
@@ -329,7 +349,7 @@ def createData_auto(skip = False):
     return mensa
 
 # ====  Statistiken ====
-def torten_ort(data):
+def torten_ort(data, show = True):
     ort=[]
     k=len(data.transactions)
     for i in range(k):
@@ -337,20 +357,18 @@ def torten_ort(data):
     myset=set(ort)
     no=list(myset)
 
-
-    print(no)
     wert=[]
     for i in range(len(no)):
         wert.append(ort.count(no[i]))
 
     plt.pie(wert,labels=no,autopct="%1.1f%%")
     plt.axis("equal")
-    plt.show()
+    plt.savefig("pictures/"+plot_names[0] + ".jpeg",dpi = 600)
+    if show:
+        plt.show()
 
-    print(ort)
 
-
-def meals(data):
+def meals(data, show = True):
     products = []
 
     # Daten sammeln
@@ -401,10 +419,11 @@ def meals(data):
     sizes_price = [item[2] for item in sorted_by_total_price]
     ax2.pie(sizes_price, labels=labels_price, autopct=make_autopct(sizes_price), startangle=140)
     ax2.set_title('Top 15 Products by Total Spend', fontsize=14)
+    plt.savefig("pictures/"+plot_names[1] + ".jpeg",dpi = 600)
+    if show:
+        plt.show()
 
-    plt.show()
-
-def payed_at_time(data):
+def payed_at_time(data, show = True):
     def rounder(t):
         if t.minute >= 30:
             return t.replace(second=0, minute=0, hour=t.hour+1)
@@ -442,11 +461,6 @@ def payed_at_time(data):
         if total_spent[i] == 0:
             counts[i] = 0
 
-    print("Anzahl der Käufe pro abgerundeter Uhrzeit:")
-    print(counts)
-    print("\nGesamtausgaben pro abgerundeter Uhrzeit:")
-    print(total_spent)
-
     # Plotting
     fig, ax1 = plt.subplots(figsize=(12, 6))
 
@@ -460,19 +474,58 @@ def payed_at_time(data):
 
     ax1.legend(loc='upper right')
     ax2.legend(loc='upper left')
-
+    ax1.set_xticklabels([dt.strftime('%H:%M') for dt in counts.index], rotation=45)
     plt.title('Anzahl der Käufe und Gesamtausgaben pro Uhrzeit')
-    plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.show()
+    plt.savefig("pictures/"+plot_names[2]+".jpeg",dpi = 600)
+    if show:
+        plt.show()
+
 
 def to_pdf():
     pdf = PDF()
     pdf.add_page()
-    pdf.chapter_body("test")
+    image_folder = 'pictures'  # Passe diesen Pfad an
+
+    #Guthaben und Ausgaben
+    pdf.chapter_title("Kontostand")
+    image = str(plot_names[4]+".jpeg")
+    pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20) 
+    pdf.chapter_body("Zu sehen ist der Kontostan im Verlauf der Zeit. Es sollte zu erkennen sein, wann Geld aufgeladen wurde und in welchen Abständen dinge gekauft wurden.")
+    #Ausgaben
+    pdf.add_page()
+    pdf.chapter_title(f"Durchschnittliche Ausgaben pro: {mid}Tage")
+    image = str(plot_names[3]+".jpeg")
+    pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20) 
+    pdf.chapter_body("In Diesem Diagram sind die Ausgaben dargestellt. Es wurde ein Intervall festgelegt, indem alle Transaktionen zusammen gerechnet werden, dieses beträgt hier {mid}Tage.")
+
+    # Kuchendiagram Orte
+    pdf.add_page()
+    image = str(plot_names[0]+".jpeg")
+    pdf.chapter_title("Dargestellt ist die Verteilung der am häufigst besuchten Einrichtungen")
+    pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20)  
+
+
+    #Tages vergleich
+    pdf.add_page()
+    image = str(plot_names[2]+".jpeg")
+    pdf.chapter_title("Verteilung der Ausgaben über die Wochentage")
+    pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20)  
+    pdf.chapter_body("Es wurde der pro Tage ausgegebene Betrag dargestellt, somit kann dem Diagram entnommen werden, zu welchen Tagen am meisten Geld ausgegeben wurde.")
+    # Zeit vergleichen
+    image = str(plot_names[2]+".jpeg")
+    pdf.chapter_title("Verteilung der Ausgaben über die Uhrzeit")
+    pdf.add_image(os.path.join(image_folder, image), w=pdf.w - 20)  
+    pdf.chapter_body("Es wurde der pro Stunde ausgegebene Betrag dargestellt, somit kann dem Diagram entnommen werden, zu welchen Zeiten am meisten Geld ausgegeben wurde. Zu erkennen sind möglicherweise Mittags und Kaffeepause, sowie möglicherweise ein Anstieg Abends, bevor die Cafeterien schließen.")
+   
+
     pdf.output("Statistik.pdf")
+
+
+
 # ==== PLOTTING ====
-def plot_transactions(data,color,value):
+def plot_transactions(data,color,value, show = True):
+    name = plot_names[3]
     if mid == 0:
         x,y,x2,z = data.get_simple_plot()
     else:
@@ -480,6 +533,7 @@ def plot_transactions(data,color,value):
     if value == "guthaben":
         y = z
         x = x2
+        name = plot_names[4]
     plt.grid()
     plt.scatter(x,y)
     plt.fill_between(x,y,color=color, alpha = 0.2)
@@ -489,12 +543,18 @@ def plot_transactions(data,color,value):
         if (type(price) == type(np.float64(3.14))) != (type(price) == type(np.int64(42))):
             plt.axhline(y=price, linestyle='--', label=item)
     plt.legend()
-    plt.show()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig("pictures/"+name+".jpeg",dpi = 600)
+    if show:
+        plt.show()
 
+show = True
 data = createData_auto(False)
-#payed_at_time(data)
-#meals(data)
-#torten_ort(data)
-#plot_transactions(data, "blue", "price")
-#plot_transactions(data, "red","guthaben")
+#payed_at_time(data,show)
+#meals(data, show)
+#torten_ort(data, show)
+plot_transactions(data, "blue", "price", show)
+plot_transactions(data, "red","guthaben")
 to_pdf()
+print("\n==============\n\n\n\n\nPDF READY\n\n\n\n\n==============\n")
