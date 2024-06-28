@@ -555,7 +555,7 @@ def meals(data, show = True):
     else:
         plt.close()
     
-def max_tag(data):
+def max_tag2(data):
     preis = []
     datum = []
     current_date = data.transactions[0].datum
@@ -582,6 +582,7 @@ def max_tag(data):
     if type(index) == type([1,2,3]):
         index = index[0]
     print(datum[index], preis[index])
+    
 def payed_at_time(data, show = True):
     def rounder(t):
         if t.minute >= 30:
