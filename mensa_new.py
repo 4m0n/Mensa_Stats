@@ -555,7 +555,33 @@ def meals(data, show = True):
     else:
         plt.close()
     
+def max_tag(data):
+    preis = []
+    datum = []
+    current_date = data.transactions[0].datum
+    bezahlt = 0
+    for trans in data.transactions:
+        if current_date == trans.datum:
+            if trans.bezahlt < 0 and trans.datum == current_date:
+                continue
+            elif trans.bezahlt < 0:
+                preis.append(bezahlt)
+                datum.append(current_date)
+            else:
+                bezahlt += trans.bezahlt
+        else:
+            preis.append(bezahlt)
+            datum.append(current_date)
+            if trans.bezahlt < 0:
+                bezahlt = 0
+            else:
+                bezahlt = trans.bezahlt
+            current_date = trans.datum
 
+    index = preis.index(max(preis))
+    if type(index) == type([1,2,3]):
+        index = index[0]
+    print(datum[index], preis[index])
 def payed_at_time(data, show = True):
     def rounder(t):
         if t.minute >= 30:
@@ -690,8 +716,9 @@ def plot_transactions(data,color,value, show = True):
         x = x2
         name = plot_names[4]
     plt.grid()
-    plt.fill_between(x,y,color=color, alpha = 0.2)
-    plt.bar(x,y, color=color, alpha = 0.6,edgecolor = "black", label = value)
+    plt.grid(zorder=0)
+    plt.fill_between(x,y,color=color, alpha = 0.2, zorder = 2)
+    plt.bar(x,y, color=color, alpha = 0.6,edgecolor = "black", label = value, zorder = 3)
     plt.legend()
     plt.xticks(rotation=45)
     plt.tight_layout()
@@ -702,10 +729,11 @@ def plot_transactions(data,color,value, show = True):
         plt.close()
 
 data = createData_auto(False)
-payed_at_time(data,show)
-meals(data, show)
-torten_ort(data, show)
-plot_transactions(data, "blue", "price", show)
-plot_transactions(data, "red","guthaben",show)
-wo_tag_zahl(data)
+#payed_at_time(data,show)
+#meals(data, show)
+#torten_ort(data, show)
+#plot_transactions(data, "blue", "price", show)
+#plot_transactions(data, "red","guthaben",show)
+#wo_tag_zahl(data)
+max_tag(data)
 to_pdf()
