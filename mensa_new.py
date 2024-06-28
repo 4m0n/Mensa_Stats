@@ -555,6 +555,46 @@ def meals(data, show = True):
     else:
         plt.close()
     
+def max_trans(data):
+    k=len(data.transactions)
+    preis=[]
+    for i in range(k):
+        if data.transactions[i].bezahlt<0:
+            continue
+        preis.append(data.transactions[i].bezahlt)
+    b=max(preis)
+    return f"die maximale Transaktion hatte einen Ausgabebetrag von: {b}Euro"
+
+def max_tag(data):
+    k=len(data.transactions)
+    if data.transactions[0].bezahlt>0:
+        sum=data.transactions[0].bezahlt
+    else:
+        sum=0
+    preis=[]
+    date=[]
+    for i in range (k-1):
+        if data.transactions[i].datum==data.transactions[i+1].datum:
+            if data.transactions[i+1].bezahlt >= 0:
+                sum+=data.transactions[i+1].bezahlt
+            else:
+                sum += 0
+        else:
+            preis.append(sum)
+            date.append(data.transactions[i].datum)
+            if data.transactions[i+1].bezahlt >= 0:
+                sum=data.transactions[i+1].bezahlt
+            else:
+                sum = 0
+
+    preis.append(sum)
+    date.append(data.transactions[k-1].datum)
+    ma=max(preis)
+    mastell=preis.index(ma)
+    madate=date[mastell].strftime("%A,%d %B %Y")
+
+    return f"Der Tag, an dem man insgesamt am meisten ausgegeben hat, war am {madate} und betrug {ma}Euro"
+
 def max_tag2(data):
     preis = []
     datum = []
@@ -581,8 +621,8 @@ def max_tag2(data):
     index = preis.index(max(preis))
     if type(index) == type([1,2,3]):
         index = index[0]
-    print(datum[index], preis[index])
-    
+    print(datum[index].strftime("%A, %d %B %Y"), preis[index])
+
 def payed_at_time(data, show = True):
     def rounder(t):
         if t.minute >= 30:
@@ -660,10 +700,14 @@ def payed_at_time(data, show = True):
 
 
 
-def to_pdf():
+def to_pdf(data):
     pdf = PDF()
     pdf.add_page()
     image_folder = 'pictures'  # Passe diesen Pfad an
+
+    text = f"{max_tag(data)}\n{max_trans(data)}"
+    print(text)
+    pdf.chapter_body(text)
 
     #Guthaben und Ausgaben
     pdf.chapter_title("Kontostand")
@@ -730,11 +774,11 @@ def plot_transactions(data,color,value, show = True):
         plt.close()
 
 data = createData_auto(False)
-#payed_at_time(data,show)
-#meals(data, show)
-#torten_ort(data, show)
-#plot_transactions(data, "blue", "price", show)
-#plot_transactions(data, "red","guthaben",show)
-#wo_tag_zahl(data)
-max_tag(data)
-to_pdf()
+payed_at_time(data,show)
+meals(data, show)
+torten_ort(data, show)
+plot_transactions(data, "blue", "price", show)
+plot_transactions(data, "red","guthaben",show)
+wo_tag_zahl(data)
+
+to_pdf(data)
