@@ -197,6 +197,7 @@ class Transaction:
         self.datum = datetime.strptime(self.datum, '%d.%m.%Y')
         self.guthaben = self.guthaben.replace(",",".")
         self.guthaben = float(re.sub(r'[^\d.-]', '', self.guthaben))
+        print(f"bezahlt: {self.bezahlt}")
         self.bezahlt = self.bezahlt.replace(",",".")
         self.bezahlt = -float(re.sub(r'[^\d.-]', '', self.bezahlt)) #minus sieht schöner aus
         for st in self.sub_trans:
@@ -316,7 +317,7 @@ def createData_auto(skip = False):
                 ort = lines[1]
                 preis_parts = lines[2].split()
                 guthaben = preis_parts[0]
-                bezahlt = preis_parts[1]
+                bezahlt = preis_parts[2]
                 trans = read_data(driver,wait,datum,ort,guthaben,bezahlt)
                 #print(f"\nCompare:\nN:{trans.to_dict()}\n\nO:{latest_trans}\n====================\n")
                 if trans.to_dict() == latest_trans:

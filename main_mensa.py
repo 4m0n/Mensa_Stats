@@ -302,6 +302,6 @@ def plotData(zeit,y,zeit2 = None,y2 = None, fileName = "plot"):
 zeit, y = createData_auto()
 zeit2, y2 = simple_mid_plot(zeit,y,duration[0])
 #print(datatext(zeit,y))
-plotData(zeit,y,zeit2,y2,fileName)
+plotData(zeit = zeit,y = y, fileName = fileName)
 
 
