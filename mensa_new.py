@@ -83,7 +83,7 @@ class Mensa:
         return len(self.transactions)
     def last_trans(self):
         return self.transactions[-1]
-    def get_simple_plot(self):
+    def get_simple_plot(self):  
         x,y, z = [],[],[]
         for val in self.transactions:
             if val.bezahlt <= 0:
@@ -197,34 +197,56 @@ class Transaction:
         self.datum = datetime.strptime(self.datum, '%d.%m.%Y')
         self.guthaben = self.guthaben.replace(",",".")
         self.guthaben = float(re.sub(r'[^\d.-]', '', self.guthaben))
-        print(f"bezahlt: {self.bezahlt}")
         self.bezahlt = self.bezahlt.replace(",",".")
         self.bezahlt = -float(re.sub(r'[^\d.-]', '', self.bezahlt)) #minus sieht schöner aus
         for st in self.sub_trans:
             st.convert_types()
 
 
-def read_data(driver,wait, datum,ort,guthaben,bezahlt):
+def read_data(mensa,driver,wait, datum,ort,guthaben,bezahlt):
     try:
         # Finde das <tbody>-Element mit der id "positionTable"
-        time.sleep(1)
-        tbody = wait.until(EC.presence_of_element_located((By.ID, "positionTable")))
-        # Finde alle <tr>-Elemente innerhalb des <tbody>
-        rows = tbody.find_elements(By.TAG_NAME, "tr")
-        sub_trans = []
-        for row in rows:
-            cells = row.find_elements(By.TAG_NAME, "td")
-            if len(cells) == 5:
-                datum2 = cells[0].text.strip()
-                ort2 = cells[1].text.strip()
-                menge = cells[2].text.strip()
-                produkt = cells[3].text.strip()
-                preis = cells[4].text.strip()
-                sub_trans.append(Sub_Trans(datum=datum2, ort=ort2, kasse="4281", menge=menge, produkt=produkt, preis=preis))
-
-                #kasse = cells[0]
-            else:
-                print("Sub_Trans kleiner als 5")
+        check = True
+        counter = 0
+        while check:
+            time.sleep(0.5)
+            tbody = wait.until(EC.presence_of_element_located((By.ID, "positionTable")))
+            # Finde alle <tr>-Elemente innerhalb des <tbody>
+            rows = tbody.find_elements(By.TAG_NAME, "tr")
+            sub_trans = []
+            check = False
+            for index, row in enumerate(rows):
+                cells = row.find_elements(By.TAG_NAME, "td")
+                if len(cells) == 5:
+                    datum2 = cells[0].text.strip()
+                    ort2 = cells[1].text.strip()
+                    menge = cells[2].text.strip()
+                    produkt = cells[3].text.strip()
+                    preis = cells[4].text.strip()
+                    sub_transactions = Sub_Trans(datum=datum2, ort=ort2, kasse="4281", menge=menge, produkt=produkt, preis=preis)
+                    #kasse = cells[0]
+                    if len(mensa.transactions) > 0:
+                        if len(mensa.transactions[-1].sub_trans) > 0:
+                            if sub_transactions == mensa.transactions[-1].sub_trans[0] and index == 0:
+                                check = True
+                                counter += 1
+                                print("ist gleich")
+                            if counter >= 20:
+                                check = False
+                                print("passt!")
+                            sub_trans.append(sub_transactions)
+                            counter = 0
+                            check = False
+                        else:
+                            sub_trans.append(sub_transactions)
+                            counter = 0
+                            check = False
+                    else:
+                        sub_trans.append(sub_transactions)
+                        counter = 0
+                        check = False
+                else:
+                    print("Sub_Trans kleiner als 5")
 
     except Exception as e:
         print("Fehler beim Suchen des Elements:", e)
@@ -298,7 +320,6 @@ def createData_auto(skip = False):
     button = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "a[href='https://mensa.studierendenwerk-goettingen.de/sales']")))
     button.click()
     # === BESTELLUNGEN === 
-    transactions = []
     open_next = True
     while open_next: 
         # ITERRIERE ÜBER ALLE BESTELLUNGEN
@@ -318,20 +339,19 @@ def createData_auto(skip = False):
                 preis_parts = lines[2].split()
                 guthaben = preis_parts[0]
                 bezahlt = preis_parts[2]
-                trans = read_data(driver,wait,datum,ort,guthaben,bezahlt)
+                trans = read_data(mensa,driver,wait,datum,ort,guthaben,bezahlt)
                 #print(f"\nCompare:\nN:{trans.to_dict()}\n\nO:{latest_trans}\n====================\n")
                 if trans.to_dict() == latest_trans:
                     print("up to date")
                     open_next = False
                     break
-                transactions.append(trans)
                 mensa.append(trans)
 
             next_site.click()
         except:
             open_next = False
         if mensa.length() >= 2:
-            #break #break early
+            break #break early
             continue
     driver.close()
     if mensa_old != None:
@@ -495,7 +515,8 @@ def meals(data, show = True):
     # Daten sammeln
     for trans in data.transactions:
         for sub_trans in trans.sub_trans:
-            products.append((sub_trans.produkt, sub_trans.preis, sub_trans.menge))
+            if sub_trans.preis >= 0:
+                products.append((sub_trans.produkt, sub_trans.preis, sub_trans.menge))
 
     # Anzahl der Käufe zählen
     product_counts = Counter()
@@ -543,7 +564,7 @@ def meals(data, show = True):
     # Gesamtpreis
     labels_price = [item[0] for item in sorted_by_total_price]
     sizes_price = [item[2] for item in sorted_by_total_price]
-
+    
     ax2.pie(sizes_price, labels=labels_price, autopct=make_autopct(sizes_price), startangle=90, pctdistance=0.85, explode = explode)
     ax2.pie([1,2], colors = ["white","white"],radius = 0.7)
     ax2.set_title('Top 15 Products by Total Spend', fontsize=14)
