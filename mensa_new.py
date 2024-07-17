@@ -515,7 +515,7 @@ def meals(data, show = True):
     # Daten sammeln
     for trans in data.transactions:
         for sub_trans in trans.sub_trans:
-            if sub_trans.preis >= 0:
+            if trans.bezahlt >= 0:
                 products.append((sub_trans.produkt, sub_trans.preis, sub_trans.menge))
 
     # Anzahl der Käufe zählen
